@@ -1,0 +1,41 @@
+This is not quite release-ready, but after presenting at the Perl Mongers
+meeting, I was kind of forced to at least share the current state of things.
+Apparently I'm not the only one who doesn't like Nagios and other bloated
+server monitoring solutions.
+
+So here it is: Test::Network, also known as tezt.
+
+
+How to create a network monitoring system in 3 simple steps:
+
+1. Install tezt
+
+    For now, just copy TAP and Test somewhere in your Perl library folders,
+    or set PERL5LIB to reflect wherever you put them.
+
+2. Create a directory with .t files in them
+
+    Every .t file should be a Perl unit test script; see "perldoc Test::Network"
+    for an example (in the SYNOPSIS).
+
+    It's a good idea to test the test suite manually with "prove $dir" before
+    creating the cron job :)
+
+3. Create a cron job
+
+    MAILTO=someone@example.org
+    */5 * * * * /path/to/diffprove -j 10 /path/to/test-suite
+
+    The -j argument to "prove" specifies the number of concurrent jobs.
+
+
+If you want to run some tests on a different interval, or only during office
+hours, etc, just create a separate directory and a separate cron job:
+
+    0 9-17 * * * /path/to/diffprove -j 10 /path/to/other-test-suite
+
+diffprove will send email when things change. It's a somewhat simplistic
+approach to network monitoring but it does everything I need.
+
+
+

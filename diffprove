@@ -1,0 +1,45 @@
+#!/usr/bin/perl -w
+use strict;
+
+my $dir = $ARGV[-1];
+$dir && -d $dir or die "Last argument must be a directory";
+
+my $mailto = $ENV{MAILTO} || $ENV{LOGNAME} || $ENV{USER} || $ENV{USERNAME};
+
+my $tmp = "$dir/.diffprove.$$";
+my $old = "$dir/.diffprove";
+my $diff = "$tmp.diff";
+
+END { unlink $diff if $diff }
+
+$ENV{PERL5LIB} = $dir;
+system "prove -m --formatter=TAP::Formatter::Diffable @ARGV > $tmp";
+
+if (system "diff -u $old $tmp > $tmp.diff") {
+    $mailto or die "No email recipient";
+    open my $fh, "|/usr/sbin/sendmail -t" or die $!;
+
+    my $report = `cat $tmp`;
+    my $diff = `cat $tmp.diff`;
+    my @fail = $report =~ m< ^ \[ .* / ([^/.]+\.t) \] $ >mx;
+
+    my ($subject) = $report =~ /^Result: PASS$/m
+        ? "All tests succesful ($dir)"
+        : "FAIL: @fail ($dir)";
+
+    print $fh <<"END";
+To: $mailto
+Subject: $subject
+
+$report
+
+Diff:
+$diff
+END
+
+    rename $tmp, $old;
+    exit 1;
+}
+
+unlink $tmp;
+exit 0;
